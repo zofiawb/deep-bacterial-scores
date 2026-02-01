@@ -4,27 +4,16 @@ from pathlib import Path
 from tqdm.auto import tqdm
 import pandas as pd
 import re
-import subprocess
 import ast
 from datetime import datetime
 import traceback
+import pysam
 
 
 
 
 """
-This script builds per-species datasets. From the RASP filenames, it pulls out 
-"Seq" - a 101 nt window of the refseq around the given score
-"Species" - the species of bacteria 
-"Method" - DMS, SHAPE-Map, SHAPE-Seq etc
-"Reagent" - DMS or SHAPE reagent 
-"Temp" - if an explicit experimental condition
-"Condition" - in vivo, in vitro, ex vivo
-"Specificity" - targeted or transcriptome wide
-"Score" - the structure score
-"Coord" - the genomic coordinate
-"Study ID" - a numerical identifier for the study, used to split the database
-"Paper" - the journal name and year
+copy for fixing/running stuff
 """
 
 
@@ -59,6 +48,16 @@ def log_message(msg: str):
 
 
 #Helper functions for parsing from filenames
+
+def open_fasta(fasta_path):
+    # requires fasta_path.fai exists (samtools faidx)
+    return pysam.FastaFile(str(fasta_path))
+
+
+def fasta_window_pysam(fa: pysam.FastaFile, ref_id: str, pos1_1based: int, window: int) -> str:
+    start0 = max(0, pos1_1based - 1 - window)       # 0-based inclusive
+    end0   = pos1_1based - 1 + window + 1           # 0-based exclusive NOTE check this
+    return fa.fetch(ref_id, start0, end0).upper()
 
 #Canonical species labels
 SPECIES_PATTERNS = {
@@ -139,15 +138,10 @@ def parse_journal_and_year(colname: str):
 
 def parse_temp(colname: str):
     """
-    Matches: 42C, 42c, 42degree, 42 degree, etc.
-    Avoids matching things like K150 (since it requires C/degree or word boundary context).
+    Matches known temp conditions within dataset
     """
     s = str(colname).lower()
-    m = re.search(r"\b(25|30|37|42|80|95)\s*(c|°c|degree|degrees)\b", s)
-    if m:
-        return int(m.group(1))
-    # allow bare tokens like "_42C_" where C attaches
-    m = re.search(r"\b(25|30|37|42|80|95)c\b", s)
+    m = re.search(r"(25|30|37|42|80|95)", s)
     return int(m.group(1)) if m else pd.NA
 
 def parse_condition(colname: str):
@@ -183,21 +177,6 @@ def parse_reagent(colname: str):
     return pd.NA
 
 
-#Get fasta window
-
-def faidx_window(pos1_1based: int, window: int, fasta_path: Path, ref_id: str) -> str:
-    start = max(1, pos1_1based - window) #bounding by seq len 
-    end = pos1_1based + window
-    region = f"{ref_id}:{start}-{end}"
-    cmd = ["samtools", "faidx", str(fasta_path), region]
-
-    out = subprocess.check_output(cmd, cwd=str(COMBINED), text=True) #executing in correct wd
-    #samtools faidx returns FASTA format: header + wrapped sequence lines
-    lines = out.splitlines()
-    seq = "".join(lines[1:]).strip().upper()
-    return seq
-
-
 #Builder function
 
 def build_dataset_streaming(df, fasta_path, ref_id, window, out_csv: Path, flush_every=10000, study_IDs_dict = dict):
@@ -217,6 +196,7 @@ def build_dataset_streaming(df, fasta_path, ref_id, window, out_csv: Path, flush
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
+    fa = open_fasta(fasta_path)
     buffer = []
     total_non_na = sum(df[col].notna().sum() for col in df.columns)
     species_label = fasta_path.stem  # "s_enterica" from "s_enterica.fasta"
@@ -253,7 +233,7 @@ def build_dataset_streaming(df, fasta_path, ref_id, window, out_csv: Path, flush
                     pbar.update(1)
                     continue
 
-                seq = faidx_window(int(pos1), window, fasta_path, ref_id)
+                seq = fasta_window_pysam(fa, ref_id, pos1, window)
 
                 buffer.append({"Seq": seq,
                     "Species": species_label,
@@ -275,6 +255,7 @@ def build_dataset_streaming(df, fasta_path, ref_id, window, out_csv: Path, flush
 
     if buffer:
         pd.DataFrame.from_records(buffer).to_csv(out_csv, mode="a", header=False, index=False)
+    fa.close()
 
 #Reading in dfs
 
@@ -285,9 +266,6 @@ FASTA_LIST = [
 REF_ID_LIST = ["NC_003197.2", "AE017194.1", "NC_000964.3", "BX548020.1", "NC_002947.4", 
                 "CP009792.1", "U00096.2"]
 # NOTE: Could not find a NCBI download for Y_pseudotuberculosis refseq NC_010456. Therefore trying a different ref.
-
-"""INPUT_DF_LIST = ["raw_s_enterica.csv", "raw_b_cereus.csv", "raw_b_subtilis.csv", "raw_synechococcus.fasta", 
-                 "raw_p_putida.csv", "raw_y_pseudotuberculosis.csv", "raw_e_coli.csv"]"""
 
 WINDOW = 50
 
