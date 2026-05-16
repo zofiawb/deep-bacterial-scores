@@ -1,0 +1,7 @@
+Paper,Nucleic_Acids_Research (2021),Nucleic_Acids_Research (2021),Nucleic_Acids_Research (2021),Nucleic_Acids_Research (2021),Nucleic_Acids_Research (2021),Nucleic_Acids_Research (2021),Nucleic_Acids_Research (2021),Nucleic_Acids_Research (2022),RNA (2021)
+Reagent,1M4,2A3,6A3,B5,I5,NAI,NIC,BZCN,DMS
+Method,,,,,,,,,
+Cotranscriptional_SHAPE-seq,0,0,0,0,0,0,0,1030,0
+DMS-MaPseq,0,0,0,0,0,0,0,0,434
+SHAPE-MaP,4370,4360,4366,4370,4370,4363,4361,0,0
+SHAPE-seq,0,0,0,0,0,0,0,1030,0

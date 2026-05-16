@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Optional
 
+import time
 import numpy as np
 import pandas as pd
 import torch
@@ -437,7 +438,7 @@ def train_one_epoch(model, loader, embedder, opt, scaler, device, use_amp) -> Tu
     Returns:
     (avg_loss, accuracy, elapsed_seconds, sequences_per_second)
     """
-    import time
+
     model.train()
     loss_fn = nn.CrossEntropyLoss()
     total_loss, all_logits, all_labels = 0.0, [], []
@@ -620,7 +621,6 @@ def main():
 
     end_epoch = (TOTAL_EPOCHS if RESUME_FROM else EPOCHS) + 1
 
-    best_val_loss = float("inf")
 
     # Training loop
     for ep in range(start_epoch, end_epoch):

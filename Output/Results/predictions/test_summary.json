@@ -1,0 +1,27 @@
+{
+  "checkpoint": "checkpoints_binary_v3/best.pt",
+  "checkpoint_epoch": 60,
+  "n_test": 208861,
+  "n_structured": 104464,
+  "n_unstructured": 104397,
+  "accuracy": 0.7345555177845553,
+  "precision": 0.7438825123545353,
+  "recall": 0.7151738076764658,
+  "f1": 0.7292457207042218,
+  "pearson_r_vs_label": 0.5499293799071028,
+  "pearson_r_vs_normalised_score": 0.5692768665469312,
+  "confusion_matrix": {
+    "TP": 74662,
+    "FP": 25706,
+    "FN": 29735,
+    "TN": 78758
+  },
+  "inference_time_secs": 39.964290384203196,
+  "pred_prob_stats": {
+    "mean": 0.49542754888534546,
+    "std": 0.2684943675994873,
+    "min": 8.761779781707446e-07,
+    "max": 1.0,
+    "median": 0.4865316152572632
+  }
+}
